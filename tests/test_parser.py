@@ -26,12 +26,14 @@ test_cases = [
     # real life sample with arn
     '{($.detail-type ="ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:stateMachine:OrderProcessorWorkflow"))}',
     '{ $.number[0][1]["test"].test = 1e-3 }',
+    '{ ($.detail-type = "ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd"))}'
 ]
 
 
 @pytest.mark.parametrize("filter_definition", test_cases)
 def test_parse_filter(filter_definition):
-    assert parse_filter(filter_definition)
+    result = parse_filter(filter_definition)
+    assert result
 
 
 error_cases = [

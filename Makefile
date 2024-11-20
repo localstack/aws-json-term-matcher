@@ -26,7 +26,7 @@ lint: venv      		  ## Run code linter to check code style and check if formatte
 	($(VENV_RUN); python -m ruff check --show-source . && python -m black --check .)
 
 install: venv
-	$(VENV_RUN); $(PIP_CMD) install -e .
+	$(VENV_RUN); $(PIP_CMD) install -e ".[test,dev]"
 
 test: venv              	  ## Run tests
 	($(VENV_RUN); python -m pytest -v --cov=plux --cov-report=term-missing --cov-report=xml tests)
