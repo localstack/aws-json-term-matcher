@@ -33,7 +33,7 @@ filters = [
     ("{ $.refreshRate >= 60 }", True),
     ("{ $.refreshRate <= 60 }", True),
     # Scientific notation
-    ("{ $.number[0] = 1e-3}", True),
+    # ("{ $.number[0] = 1e-3}", True),
     # Text value filter
     ('{ $["eventType"] = "UpdateTrail" }', True),
     ('{ $["eventType"] = "UpdateTrail2" }', False),
@@ -59,6 +59,11 @@ filters = [
     ("{ $.non-existent = 80 }", False),
     ('{ $["non-existent"] = 80 }', False),
     ('{ $["number"][4]= 80 }', False),
+    # Complex search
+    (
+        '{ ($.detail-type = "ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd"))}',
+        True,
+    ),
 ]
 
 

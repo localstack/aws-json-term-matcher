@@ -6,6 +6,23 @@ from lark.exceptions import UnexpectedCharacters, UnexpectedInput, UnexpectedTok
 from aws_json_term_matcher.exceptions import ParsingError, MatchingError
 
 
+def extract_boolean(node):
+    """
+    Recursively traverse .children[0] until the value is a boolean.
+
+    Args:
+        node: The starting node to traverse.
+
+    Returns:
+        The boolean value once found.
+    """
+    while hasattr(node, "children") and node.children:
+        node = node.children[0]
+        if isinstance(node, bool):
+            return node
+    raise ValueError("No boolean value found in the node hierarchy.")
+
+
 class IpRange:
     def __init__(self, ip_range: str):
         self.range = ip_range
@@ -37,25 +54,14 @@ class FilterEvaluator(Transformer):
     def start(self, expr):
         if isinstance(expr, bool):
             return expr
-        elif hasattr(expr, "children") and len(expr.children) > 0:
-            child = expr.children[0]
-            if isinstance(child, bool):
-                return child
 
-            if hasattr(child, "children") and len(child.children) > 0:
-                return child.children[0]
-
-        return None  # Fallback if the structure isn't as expected
+        return extract_boolean(expr)
 
     def and_op(self, left, right):
-        value_left = left.children[0]
-        value_right = right.children[0]
-        return value_left and value_right
+        return extract_boolean(left) and extract_boolean(right)
 
     def or_op(self, left: Tree, right: Tree):
-        value_left = left.children[0]
-        value_right = right.children[0]
-        return value_left or value_right
+        return extract_boolean(left) or extract_boolean(right)
 
     def comparison(self, entity, comparator, value):
         entity_value = self.resolve_entity(entity)
