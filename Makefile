@@ -23,7 +23,7 @@ format: venv           		  ## Run ruff and black to format the whole codebase
 	($(VENV_RUN); python -m ruff check --output-format=full --fix .; python -m black .)
 
 lint: venv      		  ## Run code linter to check code style and check if formatter would make changes
-	($(VENV_RUN); python -m ruff check --show-source . && python -m black --check .)
+	($(VENV_RUN); python -m ruff check --show-files . && python -m black --check .)
 
 install: venv
 	$(VENV_RUN); $(PIP_CMD) install -e ".[test,dev]"

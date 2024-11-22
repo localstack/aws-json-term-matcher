@@ -119,6 +119,8 @@ class FilterEvaluator(Transformer):
             return value.ip_is_in_range(entity_value)
 
         if comparator_value == "=":
+            if value == "*" and entity_value is not None:
+                return True
             return entity_value == value
         elif comparator_value == "!=":
             return entity_value != value

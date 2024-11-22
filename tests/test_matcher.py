@@ -64,6 +64,8 @@ filters = [
         '{ ($.detail-type = "ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd"))}',
         True,
     ),
+    # Special cases
+    ('{$.eventType = "*"}', True),
 ]
 
 

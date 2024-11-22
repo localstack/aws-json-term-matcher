@@ -1,6 +1,6 @@
 [project]
 name = "aws-json-term-matcher"
-version = "0.1.4"
+version = "0.1.5"
 authors = [
     { name = 'Cristopher Pinzon', email = 'cristopher.pinzon@localstack.cloud' }
 ]
