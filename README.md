@@ -54,3 +54,7 @@ In this example, the tool filters a log based on bandwidth and latency values, s
 
 ### Documentation
 For more information about the original JSON term matching feature in AWS CloudWatch Logs, check out the [official AWS documentation](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html#matching-terms-json-log-events).
+
+## Contributing
+
+Contributions are welcome and appreciated! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute to this project.
