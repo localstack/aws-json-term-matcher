@@ -6,6 +6,7 @@ expression: "(" expression ")"
           | comparison
 
 comparison: entity COMPARATOR value
+          | entity NOT_EXISTS -> not_exists
 COMPARATOR: "=" | "!=" | ">" | ">=" | "<" | "<="
 
 entity: "$" selection
@@ -20,6 +21,8 @@ NUMBER: INT | FLOAT
 SCIENTIFIC: SIGNED_INT "e" SIGNED_INT | SIGNED_FLOAT "e" SIGNED_INT
 IP: INT "." INT "." INT "." INT
 WILDCARD_IP: INT "." "*" | INT "." INT "." "*" | INT "." INT "." INT "." "*"
+
+NOT_EXISTS: /(?i:NOT\s+EXISTS?)/
 
 NAME: /[a-zA-Z_][a-zA-Z0-9_-]*/
 INT: /[0-9]+/

@@ -1,9 +1,10 @@
 import json
+
 import pytest
+
 from aws_json_term_matcher.matcher import match
 
-EXAMPLE_JSON_EVENT = json.loads(
-    """
+EXAMPLE_JSON_EVENT = json.loads("""
 {
     "eventType": "UpdateTrail",
     "bandwidth": 80,
@@ -21,8 +22,7 @@ EXAMPLE_JSON_EVENT = json.loads(
         "arn:aws:states:us-east-1:111222333444:stateMachine:OrderProcessorWorkflow"
     ]
 }
-"""
-)
+""")
 
 
 filters = [
@@ -66,9 +66,45 @@ filters = [
     ),
     # Special cases
     ('{$.eventType = "*"}', True),
+    # NOT EXISTS / NOT EXIST
+    ("{ $.SomeOtherObject NOT EXISTS }", True),
+    ("{ $.SomeOtherObject NOT EXIST }", True),
+    ("{ $.SomeOtherObject not exists }", True),
+    ("{ $.SomeOtherObject not exist }", True),
+    ("{ $.eventType NOT EXISTS }", False),
+    ("{ $.eventType NOT EXIST }", False),
+    ('{ $["eventType"] NOT EXISTS }', False),
+    ('{ $["non-existent"] NOT EXISTS }', True),
+    ("{ $.number[0] NOT EXISTS }", False),
+    ("{ $.number[4] NOT EXISTS }", True),
+    ("{ $.non_existent.nested NOT EXISTS }", True),
+    ('{($.SomeOtherObject NOT EXISTS) && ($.eventType = "UpdateTrail")}', True),
+    ('{($.SomeOtherObject NOT EXISTS) && ($.eventType != "UpdateTrail")}', False),
+    ("{ $.SomeOtherObject NOT EXISTS || $.bandwidth = 999 }", True),
+    ("{ $.eventType NOT EXISTS || $.bandwidth = 999 }", False),
 ]
 
 
 @pytest.mark.parametrize("filter_def, result", filters)
 def test_matcher(filter_def, result):
     assert match(EXAMPLE_JSON_EVENT, filter_def) == result
+
+
+def test_not_exists_with_null_and_nested():
+    data = {
+        "nullable": None,
+        "nested": {"present": "value", "null_child": None},
+        "empty_list": [],
+    }
+    # An attribute with value null (None) exists, so NOT EXISTS is False
+    assert match(data, "{ $.nullable NOT EXISTS }") is False
+    assert match(data, "{ $.nested.null_child NOT EXISTS }") is False
+    # An attribute that does not exist
+    assert match(data, "{ $.missing NOT EXISTS }") is True
+    assert match(data, "{ $.missing NOT EXIST }") is True
+    assert match(data, "{ $.nested.missing NOT EXISTS }") is True
+    assert match(data, "{ $.missing.deeply.nested NOT EXISTS }") is True
+    assert match(data, "{ $.empty_list[0] NOT EXISTS }") is True
+    # Non-existent attribute with comparison returns False without error
+    assert match(data, '{ $.missing = "value" }') is False
+    assert match(data, '{ $.missing.nested = "value" }') is False
