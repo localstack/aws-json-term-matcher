@@ -1,9 +1,11 @@
 import os
 
-from lark import Lark, Transformer, v_args, Tree, Token
+from lark import Lark, Token, Transformer, Tree, v_args
 from lark.exceptions import UnexpectedCharacters, UnexpectedInput, UnexpectedToken
 
-from aws_json_term_matcher.exceptions import ParsingError, MatchingError
+from aws_json_term_matcher.exceptions import MatchingError, ParsingError
+
+MISSING = object()
 
 
 def extract_boolean(node):
@@ -16,6 +18,8 @@ def extract_boolean(node):
     Returns:
         The boolean value once found.
     """
+    if isinstance(node, bool):
+        return node
     while hasattr(node, "children") and node.children:
         node = node.children[0]
         if isinstance(node, bool):
@@ -63,60 +67,74 @@ class FilterEvaluator(Transformer):
     def or_op(self, left: Tree, right: Tree):
         return extract_boolean(left) or extract_boolean(right)
 
+    def not_exists(self, entity, _op=None):
+        entity_value = self.resolve_entity(entity)
+        return entity_value is MISSING
+
     def comparison(self, entity, comparator, value):
         entity_value = self.resolve_entity(entity)
+        if entity_value is MISSING:
+            return False
         result = self.compare(entity_value, comparator, value)
         return result
 
     def resolve_entity(self, entity: Tree):
         # Extract the entity from the dictionary based on selection rules
         # This would resolve $.attribute or $[index] kind of paths in the dictionary
-        keys = []
-        # in this case the three only is composed of branch with just one branch
-        # entity -> selection -> attribute access -> "NAME"
+        path = []
 
         def _resolve(node):
-            if node.data == "attribute_access":
-                # Handles attributes like $.attributeName or $["attributeName"]
-                child = node.children[0]
-                if child.type == "NAME":
-                    keys.append(child.value)  # Regular attribute
-                elif child.type == "ESCAPED_STRING":
-                    keys.append(
-                        child.value.strip('"')
-                    )  # Attribute accessed like ["attr"]
+            if isinstance(node, Tree):
+                if node.data == "attribute_access":
+                    # Handles attributes like $.attributeName or $["attributeName"]
+                    child = node.children[0]
+                    if child.type == "NAME":
+                        path.append(("attr", child.value))
+                    elif child.type == "ESCAPED_STRING":
+                        path.append(("attr", child.value.strip("\"'")))
 
-            elif node.data == "index_access":
-                index = node.children[0].value
-                keys.append(index)
+                elif node.data == "index_access":
+                    index = int(node.children[0].value)
+                    path.append(("index", index))
 
-            elif node.data == "selection":
-                # Keep recursing through the selection (attributes or indices)
-                for child in node.children:
-                    _resolve(child)
-            elif node.data == "entity":
-                for child in node.children:
-                    _resolve(child)
+                else:
+                    for child in node.children:
+                        _resolve(child)
 
         # Start traversing the entity tree to build the keys
         _resolve(entity)
 
-        value = self.data
-        try:
-            for key in keys:
-                if key.isdigit():
-                    value = value[int(key)]
+        current = self.data
+        for access_type, key in path:
+            if access_type == "attr":
+                if isinstance(current, dict) and key in current:
+                    current = current[key]
                 else:
-                    value = value.get(key, None)
-            return value
-        except IndexError:
-            return None
+                    return MISSING
+            elif access_type == "index":
+                if isinstance(current, (list, tuple)):
+                    if 0 <= key < len(current):
+                        current = current[key]
+                    else:
+                        return MISSING
+                elif isinstance(current, dict):
+                    if key in current:
+                        current = current[key]
+                    elif str(key) in current:
+                        current = current[str(key)]
+                    else:
+                        return MISSING
+                else:
+                    return MISSING
+
+        return current
 
     def compare(self, entity_value, comparator, value):
         comparator_value = comparator.value
 
         if isinstance(value, IpRange):
-            return value.ip_is_in_range(entity_value)
+            in_range = value.ip_is_in_range(entity_value)
+            return not in_range if comparator_value == "!=" else in_range
 
         if comparator_value == "=":
             if value == "*" and entity_value is not None:
@@ -125,13 +143,13 @@ class FilterEvaluator(Transformer):
         elif comparator_value == "!=":
             return entity_value != value
         elif comparator_value == ">":
-            return entity_value > value
+            return entity_value > value if entity_value is not None else False
         elif comparator_value == ">=":
-            return entity_value >= value
+            return entity_value >= value if entity_value is not None else False
         elif comparator_value == "<":
-            return entity_value < value
+            return entity_value < value if entity_value is not None else False
         elif comparator_value == "<=":
-            return entity_value <= value
+            return entity_value <= value if entity_value is not None else False
         return False
 
     def value(self, value: Token):

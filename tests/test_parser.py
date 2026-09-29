@@ -3,7 +3,6 @@ import pytest
 from aws_json_term_matcher.exceptions import ParsingError
 from aws_json_term_matcher.matcher import parse_filter
 
-
 # This test case a
 test_cases = [
     # simple case
@@ -27,6 +26,16 @@ test_cases = [
     '{($.detail-type ="ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:stateMachine:OrderProcessorWorkflow"))}',
     '{ $.number[0][1]["test"].test = 1e-3 }',
     '{ ($.detail-type = "ShopUnavailable") && (($.resources[1] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd") || ($.resources[0] = "arn:aws:states:us-east-1:111222333444:execution:OrderProcessorWorkflow:d57d4769-72fd"))}',
+    # NOT EXISTS / NOT EXIST
+    "{ $.SomeOtherObject NOT EXISTS }",
+    "{ $.SomeOtherObject NOT EXIST }",
+    "{ $.SomeOtherObject not exists }",
+    "{ $.SomeOtherObject not exist }",
+    "{ $.someObject.someField NOT EXISTS }",
+    '{ $["someObject"]["someField"] NOT EXISTS }',
+    "{ $.arrayKey[0] NOT EXISTS }",
+    '{( $.SomeOtherObject NOT EXISTS) && ($.eventType = "UpdateTrail") }',
+    '{ $.SomeOtherObject NOT EXISTS || $.eventType = "UpdateTrail" }',
 ]
 
 
@@ -52,6 +61,10 @@ error_cases = [
     "{($.attribute = 1 }",
     "{$.attribute = 1) }",
     "{($.attribute = 1) && () }",
+    "{ $.attribute NOT }",
+    "{ $.attribute EXISTS }",
+    "{ NOT EXISTS }",
+    "{ $.attribute NOT EXISTS extra }",
 ]
 
 
